@@ -19,32 +19,37 @@ const tableData = [
   {
     name: 'John Smith',
     status: 'Employed',
-    selected: true,
+    id: 0,
   },
   {
     name: 'Randal White',
     status: 'Unemployed',
+    id: 1,
   },
   {
     name: 'Stephanie Sanders',
     status: 'Employed',
-    selected: true,
+    id: 2,
   },
   {
     name: 'Steve Brown',
     status: 'Employed',
+    id: 3,
   },
   {
     name: 'Joyce Whitten',
     status: 'Employed',
+    id: 4,
   },
   {
     name: 'Samuel Roberts',
     status: 'Employed',
+    id: 5,
   },
   {
     name: 'Adam Moore',
     status: 'Employed',
+    id: 6,
   },
 ];
 
@@ -59,12 +64,23 @@ export default class TableExampleComplex extends React.Component {
       stripedRows: false,
       showRowHover: false,
       selectable: true,
-      multiSelectable: false,
-      enableSelectAll: false,
-      deselectOnClickaway: true,
+      multiSelectable: true,
+      enableSelectAll: true,
+      deselectOnClickaway: false,
       showCheckboxes: true,
       height: '300px',
+      searchText: '',
+      selectedKeys: [],
+      filteredUsers: tableData,
     };
+  }
+
+  filteredUsers = () => {
+    const re = new RegExp(this.state.searchText, 'i');
+    const filteredUsers = this.state.searchText ?
+      tableData.filter((user) => re.test(`${user.name}`)) : tableData;
+
+    return filteredUsers;
   }
 
   handleToggle = (event, toggled) => {
@@ -77,7 +93,50 @@ export default class TableExampleComplex extends React.Component {
     this.setState({height: event.target.value});
   };
 
+  handleSearchOnChange = (event) => {
+    event.preventDefault();
+
+    this.setState({
+      searchText: event.target.value,
+    });
+  }
+
+  handleRowSelection = (selection) => {
+    if (selection === 'all') {
+      this.setState({
+        selectedKeys: tableData.map((user) => user.id),
+      });
+
+      return;
+    } else if (selection === 'none') {
+      this.setState({
+        selectedKeys: [],
+      });
+
+      return;
+    }
+
+    const filteredUsers = this.filteredUsers();
+    const user = filteredUsers[selection];
+    const selectedKeys = this.state.selectedKeys;
+
+    if (selectedKeys.includes(user.id)) {
+      selectedKeys.splice(selectedKeys.indexOf(user.id), 1);
+    } else {
+      selectedKeys.push(user.id);
+    }
+
+    this.setState({selectedKeys});
+  }
+
   render() {
+    const {selectedKeys} = this.state;
+
+    const filteredUsers = this.filteredUsers();
+    const selectedUsers = filteredUsers.filter((user) => selectedKeys.includes(user.id));
+    const selectedRows = selectedUsers.map((user) => filteredUsers.indexOf(user));
+    const allRowsSelected = (filteredUsers.length === selectedRows.length) && filteredUsers.length > 0;
+
     return (
       <div>
         <Table
@@ -86,6 +145,9 @@ export default class TableExampleComplex extends React.Component {
           fixedFooter={this.state.fixedFooter}
           selectable={this.state.selectable}
           multiSelectable={this.state.multiSelectable}
+          selectedRows={selectedRows}
+          allRowsSelected={allRowsSelected}
+          onRowSelection={this.handleRowSelection}
         >
           <TableHeader
             displaySelectAll={this.state.showCheckboxes}
@@ -95,6 +157,11 @@ export default class TableExampleComplex extends React.Component {
             <TableRow>
               <TableHeaderColumn colSpan="3" tooltip="Super Header" style={{textAlign: 'center'}}>
                 Super Header
+                <TextField
+                  hintText={'Search'}
+                  onChange={this.handleSearchOnChange}
+                  style={{display: 'block', width: '100%'}}
+                />
               </TableHeaderColumn>
             </TableRow>
             <TableRow>
@@ -109,13 +176,17 @@ export default class TableExampleComplex extends React.Component {
             showRowHover={this.state.showRowHover}
             stripedRows={this.state.stripedRows}
           >
-            {tableData.map( (row, index) => (
-              <TableRow key={index} selected={row.selected}>
-                <TableRowColumn>{index}</TableRowColumn>
-                <TableRowColumn>{row.name}</TableRowColumn>
-                <TableRowColumn>{row.status}</TableRowColumn>
-              </TableRow>
-              ))}
+            {filteredUsers.map((user) => {
+              return (
+                <TableRow
+                  key={user.id}
+                >
+                  <TableRowColumn>{user.id}</TableRowColumn>
+                  <TableRowColumn>{user.name}</TableRowColumn>
+                  <TableRowColumn>{user.status}</TableRowColumn>
+                </TableRow>
+              );
+            })}
           </TableBody>
           <TableFooter
             adjustForCheckbox={this.state.showCheckboxes}
